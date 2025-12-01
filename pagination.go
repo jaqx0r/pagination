@@ -4,6 +4,12 @@
 // continuing subsequent list method calls.
 package pagination
 
+import "errors"
+
+var (
+	ErrNegativePageSize = errors.New("pageSize must not be negative")
+)
+
 // Decode takes a `next_page_token` UTF8 string and a nonce and returns a
 // decoded next page number, or an error explaining why this token was not
 // valid.  The nonce must be constant for the same request parameters, e.g. a
@@ -11,7 +17,7 @@ package pagination
 // starting at an offset of zero, with a page set to Size is returned.  Callers
 // are responsible for converting the page number returned to an offset for
 // their storage query engine.
-func Decode(token string, nonce []byte, size int) (page int, err error) {
+func Decode(token string, nonce []byte, pageSize int) (page int, err error) {
 	return 0, nil
 }
 
@@ -21,6 +27,9 @@ func Decode(token string, nonce []byte, size int) (page int, err error) {
 // one.  If the encoding fails, an error is returned instead and the token is
 // undefined.  The nonce must be constant for the same request parameters,
 // e.g. a hash of the filter expression string.
-func Encode(size, page int, nonce []byte) (next_page_token string, err error) {
+func Encode(pageSize, page int, nonce []byte) (next_page_token string, err error) {
+	if pageSize < 0 {
+		return "", ErrNegativePageSize
+	}
 	return "", nil
 }
