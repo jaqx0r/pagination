@@ -27,6 +27,9 @@ type nextPageToken struct {
 // zero.  Callers are responsible for converting the page number returned to an
 // offset for their storage query engine.
 func Decode(token string, nonce []byte) (page int, err error) {
+	if token == "" {
+		return 0, nil
+	}
 	b, err := base64.RawURLEncoding.DecodeString(token)
 	if err != nil {
 		return 0, fmt.Errorf("%w: %v", ErrInvalidToken, err)

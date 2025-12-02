@@ -46,6 +46,16 @@ func TestBadToken(t *testing.T) {
 	}
 }
 
+func TestEmptyToken(t *testing.T) {
+	page, err := pagination.Decode("", []byte{})
+	if err != nil {
+		t.Errorf("Decode('') unexpected error: %v", err)
+	}
+	if page != 0 {
+		t.Errorf("page: want %v got %v", 0, page)
+	}
+}
+
 func ExampleDecode() {
 	// Compute a hash of the request arguments.  AIP-158 says "the user is
 	// expected to keep all other arguments to the RPC the same; if any
