@@ -1,6 +1,7 @@
 package pagination_test
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -33,5 +34,12 @@ func TestChangedParameters(t *testing.T) {
 	if !cmp.Equal(err, pagination.ErrChangedParameters, cmpopts.EquateErrors()) {
 		t.Errorf("Decode(%v): unexpected error; want %v got %v", token, pagination.ErrChangedParameters, err)
 	}
+}
 
+func TestBadToken(t *testing.T) {
+	token := "asdfasdfasdf"
+	_, err := pagination.Decode(token, []byte{})
+	if !errors.Is(err, pagination.ErrInvalidToken) {
+		t.Errorf("Decode(%v): unexpected error; want %v got %v", token, pagination.ErrInvalidToken, err)
+	}
 }

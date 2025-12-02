@@ -9,10 +9,11 @@ import (
 	"encoding/base64"
 	"encoding/gob"
 	"errors"
-	"strings"
+	"fmt"
 )
 
 var ErrChangedParameters = errors.New("parameters changed between method calls invalidating this token")
+var ErrInvalidToken = errors.New("invalid token")
 
 type nextPageToken struct {
 	Page  int
@@ -26,9 +27,9 @@ type nextPageToken struct {
 // zero.  Callers are responsible for converting the page number returned to an
 // offset for their storage query engine.
 func Decode(token string, nonce []byte) (page int, err error) {
-	b, err := base64.URLEncoding.DecodeString(token)
+	b, err := base64.RawURLEncoding.DecodeString(token)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("%w: %v", ErrInvalidToken, err)
 	}
 	bs := bytes.NewBuffer(b)
 
@@ -36,7 +37,7 @@ func Decode(token string, nonce []byte) (page int, err error) {
 	gDec := gob.NewDecoder(bs)
 	err = gDec.Decode(&nextPageToken)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("%w: %v", ErrInvalidToken, err)
 	}
 	if !bytes.Equal(nonce, nextPageToken.Nonce) {
 		return 0, ErrChangedParameters
@@ -63,9 +64,5 @@ func Encode(page int, nonce []byte) (next_page_token string, err error) {
 	if err != nil {
 		return "", err
 	}
-	var s strings.Builder
-	bEnc := base64.NewEncoder(base64.URLEncoding, &s)
-	bEnc.Write(b.Bytes())
-	bEnc.Close()
-	return s.String(), nil
+	return base64.RawURLEncoding.EncodeToString(b.Bytes()), nil
 }
