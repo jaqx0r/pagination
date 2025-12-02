@@ -1,7 +1,9 @@
 package pagination_test
 
 import (
+	"crypto/sha256"
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -42,4 +44,35 @@ func TestBadToken(t *testing.T) {
 	if !errors.Is(err, pagination.ErrInvalidToken) {
 		t.Errorf("Decode(%v): unexpected error; want %v got %v", token, pagination.ErrInvalidToken, err)
 	}
+}
+
+func ExampleDecode() {
+	// Compute a hash of the request arguments.  AIP-158 says "the user is
+	// expected to keep all other arguments to the RPC the same; if any
+	// arguments are different, the API should send an INVALID_ARGUMENT error.
+	paramHash := sha256.New()
+	paramHash.Write([]byte("filter=an expression")) // from `req.params.filter`
+	nonce := paramHash.Sum(nil)
+
+	// In Request N-1
+
+	pageOffset := 3 // current page offset from req params
+
+	nextPageToken, err := pagination.Encode(pageOffset, nonce)
+	if err != nil {
+		fmt.Printf("InvalidArgument error: %v", err)
+	}
+
+	// resp.nextPageToken = nextPageToken
+	// return resp, nil
+
+	// In request N
+	page, err := pagination.Decode(nextPageToken, nonce)
+	if err != nil {
+		// If the nonce differs, Decode will fail, warning us the request arguments differ.
+		fmt.Printf("InvalidArgument error: %v", err)
+	}
+
+	fmt.Printf("Next page offset is %d", page)
+	// Output: Next page offset is 4
 }
