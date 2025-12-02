@@ -4,32 +4,68 @@
 // continuing subsequent list method calls.
 package pagination
 
-import "errors"
-
-var (
-	ErrNegativePageSize = errors.New("pageSize must not be negative")
+import (
+	"bytes"
+	"encoding/base64"
+	"encoding/gob"
+	"errors"
+	"strings"
 )
+
+var ErrChangedParameters = errors.New("parameters changed between method calls invalidating this token")
+
+type nextPageToken struct {
+	Page  int
+	Nonce []byte
+}
 
 // Decode takes a `next_page_token` UTF8 string and a nonce and returns a
 // decoded next page number, or an error explaining why this token was not
-// valid.  The nonce must be constant for the same request parameters, e.g. a
-// hash of a filter expression string.  If the token is empty, a new Pagination
-// starting at an offset of zero, with a page set to Size is returned.  Callers
-// are responsible for converting the page number returned to an offset for
-// their storage query engine.
-func Decode(token string, nonce []byte, pageSize int) (page int, err error) {
-	return 0, nil
+// valid.  The nonce must be constant for the same query parameters, e.g. a
+// hash of a filter expression string.  If the token is empty, the page is
+// zero.  Callers are responsible for converting the page number returned to an
+// offset for their storage query engine.
+func Decode(token string, nonce []byte) (page int, err error) {
+	b, err := base64.URLEncoding.DecodeString(token)
+	if err != nil {
+		return 0, err
+	}
+	bs := bytes.NewBuffer(b)
+
+	var nextPageToken nextPageToken
+	gDec := gob.NewDecoder(bs)
+	err = gDec.Decode(&nextPageToken)
+	if err != nil {
+		return 0, err
+	}
+	if !bytes.Equal(nonce, nextPageToken.Nonce) {
+		return 0, ErrChangedParameters
+	}
+
+	return nextPageToken.Page, nil
 }
 
-// Encode takes a page size and page number for the current response, and a
-// nonce, and returns an encoded `next_page_token` UTF8 string to pass to a
+// Encode takes a page number for the current response, the next page size, and
+// a nonce, and returns an encoded `next_page_token` UTF8 string to pass to a
 // REST client as a way to continue a list query at the next page after this
 // one.  If the encoding fails, an error is returned instead and the token is
-// undefined.  The nonce must be constant for the same request parameters,
-// e.g. a hash of the filter expression string.
-func Encode(pageSize, page int, nonce []byte) (next_page_token string, err error) {
-	if pageSize < 0 {
-		return "", ErrNegativePageSize
+// undefined.  The nonce must be constant for the same query parameters, e.g. a
+// hash of the filter expression string.  The page size may change between
+// requests.
+func Encode(page int, nonce []byte) (next_page_token string, err error) {
+	token := nextPageToken{
+		Page:  page + 1,
+		Nonce: nonce,
 	}
-	return "", nil
+	var b bytes.Buffer
+	gobEnc := gob.NewEncoder(&b)
+	err = gobEnc.Encode(token)
+	if err != nil {
+		return "", err
+	}
+	var s strings.Builder
+	bEnc := base64.NewEncoder(base64.URLEncoding, &s)
+	bEnc.Write(b.Bytes())
+	bEnc.Close()
+	return s.String(), nil
 }
