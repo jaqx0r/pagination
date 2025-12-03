@@ -13,3 +13,7 @@ A response may contain fewer than `page_size` resources in the collection, possi
 The `next_page_token` must be an opaque string.
 
 The request signature (i.e. any other query parameters) should be constant across all queries using this sequence of page tokens, so the function should return an error if the signature changes for a given token.
+
+## Example
+
+https://github.com/jaqx0r/pagination/blob/51750129674167c0d34c594467b107a9f66b1aa0/pagination_test.go#L101-L117
