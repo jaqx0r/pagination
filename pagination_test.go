@@ -26,6 +26,31 @@ func TestRoundTrip(t *testing.T) {
 	}
 }
 
+func TestChangedPageSize(t *testing.T) {
+	token, err := pagination.Encode(0, 1, []byte{})
+	if err != nil {
+		t.Errorf("Encode(0, 0): %v", err)
+	}
+
+	offset, err := pagination.Decode(token, []byte{})
+	if err != nil {
+		t.Errorf("Decode(%v): %v", token, err)
+	}
+
+	token2, err := pagination.Encode(offset, 10, []byte{})
+	if err != nil {
+		t.Errorf("Encode(0, 0): %v", err)
+	}
+
+	offset2, err := pagination.Decode(token2, []byte{})
+	if err != nil {
+		t.Errorf("Decode(%v): %v", token, err)
+	}
+	if offset2 != 11 {
+		t.Errorf("unexpected page number, expecting 11, got %d", offset2)
+	}
+}
+
 func TestChangedParameters(t *testing.T) {
 	token, err := pagination.Encode(0, 0, []byte("a"))
 	if err != nil {
