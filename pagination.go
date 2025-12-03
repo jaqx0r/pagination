@@ -16,17 +16,16 @@ var ErrChangedParameters = errors.New("parameters changed between method calls i
 var ErrInvalidToken = errors.New("invalid token")
 
 type nextPageToken struct {
-	Page  int
+	Offset  int
 	Nonce []byte
 }
 
 // Decode takes a `next_page_token` UTF8 string and a nonce and returns a
-// decoded next page number, or an error explaining why this token was not
+// decoded offset number, or an error explaining why this token was not
 // valid.  The nonce must be constant for the same query parameters, e.g. a
-// hash of a filter expression string.  If the token is empty, the page is
-// zero.  Callers are responsible for converting the page number returned to an
-// offset for their storage query engine.
-func Decode(token string, nonce []byte) (page int, err error) {
+// hash of a filter expression string.  If the token is empty, the offset is
+// zero.  
+func Decode(token string, nonce []byte) (offset int, err error) {
 	if token == "" {
 		return 0, nil
 	}
@@ -46,19 +45,18 @@ func Decode(token string, nonce []byte) (page int, err error) {
 		return 0, ErrChangedParameters
 	}
 
-	return nextPageToken.Page, nil
+	return nextPageToken.Offset, nil
 }
 
-// Encode takes a page number for the current response, the next page size, and
+// Encode takes the last offset, the page size for the current response, and
 // a nonce, and returns an encoded `next_page_token` UTF8 string to pass to a
 // REST client as a way to continue a list query at the next page after this
 // one.  If the encoding fails, an error is returned instead and the token is
 // undefined.  The nonce must be constant for the same query parameters, e.g. a
-// hash of the filter expression string.  The page size may change between
-// requests.
-func Encode(page int, nonce []byte) (next_page_token string, err error) {
+// hash of the filter expression string.
+func Encode(lastOffset, pageSize int, nonce []byte) (next_page_token string, err error) {
 	token := nextPageToken{
-		Page:  page + 1,
+		Offset: lastOffset + pageSize,
 		Nonce: nonce,
 	}
 	var b bytes.Buffer
