@@ -5,7 +5,7 @@ A library to assist with REST API pagination, implemented in Go.
 ## API
 
 ```go
-pagination.Decode(token string, nonce []byte) (offset int, err error)
+pagination.Decode[int](token string, nonce []byte) (cursor int, err error)
 ```
 
 Decode a page `token` provided in the request parameters by the caller, to get the cursor offset.  Errors indicate invalid tokens and should return an Invalid Argument HTTP response code.
@@ -13,14 +13,14 @@ Decode a page `token` provided in the request parameters by the caller, to get t
 The `nonce` is a signature of the request query parameters, for example a hash, that the function will use to determine if the offset is still valid with respect to those query parameters.
 
 ```go
-pagination.Encode(offset, pageSize int, nonce []byte) (token string, err error)
+pagination.Encode(cursor, nonce []byte) (token string, err error)
 ```
 
-Encode the last page offset (from a prior `Decode()`), the current page size, and the previously computed nonce into a token string to return to the caller in the response payload, so that they may return it the next time.
+Encode the last cursor (from a prior `Decode()` and query results) and the previously computed nonce into a token string to return to the caller in the response payload, so that they may return it the next time.
 
 ## Specification
 
-An [AIP-158](https://google.aip.dev/158) compliant pagination function needs to transform an incoming `token` and request signature into a page `offset` suitable for continuing a query against storage.
+An [AIP-158](https://google.aip.dev/158) compliant pagination function needs to transform an incoming `token` and request signature into a cursor suitable for continuing a query against storage.
 
 Likewise the function needs to compute a new `next_page_token` for the response, such that the client can return it in a followup request.
 
@@ -34,4 +34,8 @@ The request signature (i.e. any other query parameters) should be constant acros
 
 ## Example
 
-https://github.com/jaqx0r/pagination/blob/51750129674167c0d34c594467b107a9f66b1aa0/pagination_test.go#L101-L117
+https://github.com/jaqx0r/pagination/blob/main/pagination_example_test.go
+
+## See also
+
+https://github.com/jaqx0r/filterexpression
